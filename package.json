@@ -1,0 +1,147 @@
+{
+  "name": "htr",
+  "displayName": "htr",
+  "description": "Helm Template Renderer",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "HTR Extension Configuration",
+      "properties": {
+        "htr.environments": {
+          "type": "object",
+          "description": "Environment settings for HTR extension",
+          "default": {}
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "htr.previewYaml",
+        "title": "Preview render HELM template"
+      },
+      {
+        "command": "htr.addEnvironment",
+        "title": "Add environment",
+        "icon": "$(plus)"
+      },
+      {
+        "command": "htr.deleteEnvironment",
+        "title": "Delete environment",
+        "icon": "$(notebook-delete-cell)"
+      },
+      {
+        "command": "htr.deleteFile",
+        "title": "Delete file",
+        "icon": "$(notebook-delete-cell)"
+      },
+      {
+        "command": "htr.deleteValue",
+        "title": "Delete value",
+        "icon": "$(notebook-delete-cell)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "htr",
+          "title": "HTR",
+          "icon": "media/icon/main-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "htr": [
+        {
+          "id": "environments",
+          "name": "Environments"
+        },
+        {
+          "id": "files",
+          "name": "Files"
+        },
+        {
+          "id": "values",
+          "name": "Values"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "files",
+        "contents": "No files defined for the selected environment.\n[Add file](command:htr.addFile)"
+      },
+      {
+        "view": "values",
+        "contents": "No values defined for the selected environment.\n[Add value](command:htr.addValue)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "htr.addEnvironment",
+          "when": "view == environments",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [      
+        {
+          "command": "htr.deleteEnvironment",
+          "when": "view == environments",
+          "group": "inline"
+        },
+        {
+          "command": "htr.deleteFile",
+          "when": "view == files",
+          "group": "inline"
+        },
+        {
+          "command": "htr.deleteValue",
+          "when": "view == values",
+          "group": "inline"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/mocha": "^10.0.7",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.91.0",
+    "@types/vscode-webview": "^1.57.5",
+    "@typescript-eslint/eslint-plugin": "^7.14.1",
+    "@typescript-eslint/parser": "^7.11.0",
+    "@vscode/test-cli": "^0.0.9",
+    "@vscode/test-electron": "^2.4.0",
+    "eslint": "^8.57.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.5",
+    "webpack": "^5.92.1",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@microsoft/vscode-azext-utils": "^1.2.1",
+    "@vscode/codicons": "^0.0.36",
+    "@vscode/webview-ui-toolkit": "^1.4.0",
+    "js-yaml": "^4.1.0"
+  }
+}

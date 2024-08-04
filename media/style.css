@@ -1,0 +1,12 @@
+body {
+    font-family: Arial, sans-serif;
+    font-size:small;
+}
+
+button {
+    margin-top: 10px;
+}
+
+#configList {
+    margin-top: 20px;
+}
