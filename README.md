@@ -1,4 +1,4 @@
-# htr README
+# HELM Template Renderer
 
 This is the README for your extension "htr". After writing up a brief description, we recommend including the following sections.
 
