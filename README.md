@@ -7,6 +7,7 @@ This is the README for your extension "htr". After writing up a brief descriptio
 Configure multiple deployment environments and see what your K8S object would look like if you are to publish it in the cluster.
 
 ![feature 1](images/feature1.png)
+![feature 2](images/feature2.png)
 
 
 ## Requirements
