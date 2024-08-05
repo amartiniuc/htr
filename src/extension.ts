@@ -2,152 +2,233 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import EnvironmentsProvider from './providers/EnvironmentsProvider';
-import ConfigObject from './entity/ConfigObject';
-import FilesProvider from './providers/FilesProvider';
-import ValuesProvider from './providers/ValuesProvider';
 import General from './config/General';
+import ProviderService from './service/ProviderService';
+import TreeViewService from './service/TreeViewService';
+import { Environment } from './types';
+import { stdout } from 'process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+var providerService = new ProviderService();
+var treeViewService = new TreeViewService(providerService);
+let previewPanel: vscode.WebviewPanel | undefined;
+
+const execPromise = promisify(exec);
 
 export function activate(context: vscode.ExtensionContext) {
+    let activeEditor = vscode.window.activeTextEditor;
 
     // TODO check if helm is installed
     // TODO check if kubectl is present
     // TODO check if a helm chart is present (Chart.yaml file that contains name info)
 
-    const environmentsProvider = new EnvironmentsProvider();
-    vscode.window.registerTreeDataProvider(
-        environmentsProvider.viewId, environmentsProvider
-    );
-
-    const environmentsTreeView = vscode.window.createTreeView(environmentsProvider.viewId, {
-        treeDataProvider: environmentsProvider
-    });
-
-    const filesProvider = new FilesProvider();
-    vscode.window.registerTreeDataProvider(
-        filesProvider.viewId, filesProvider
-    );
-
-    const filesTreeView = vscode.window.createTreeView(filesProvider.viewId, {
-        treeDataProvider: filesProvider
-    });
-
-    const valuesProvider = new ValuesProvider();
-    vscode.window.registerTreeDataProvider(
-        valuesProvider.viewId, valuesProvider
-    );
-
-    const valuesTreeView = vscode.window.createTreeView(valuesProvider.viewId, {
-        treeDataProvider: valuesProvider
-    });
-
     vscode.workspace.onDidChangeConfiguration(e => {
         console.log("onDidChangeConfiguration " + General.selectedEnvironment);
-        environmentsProvider.refresh();
-        valuesProvider.refresh();
-        filesProvider.refresh();
+        providerService.getEnvironmentsProvider().refresh();
+        providerService.getValuesProvider().refresh();
+        providerService.getFilesProvider().refresh();
+        const activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor) {
+            triggerUpdate(activeEditor.document);
+        }
     });
 
-   context.subscriptions.push(
-        environmentsTreeView,
-        filesTreeView,
-        valuesTreeView,
-        vscode.commands.registerCommand('htr.addEnvironment', async () => {
-            await addEnvironment();
-        }),
-        vscode.commands.registerCommand('htr.deleteEnvironment', async (e) => {
-            await deleteEnvironment(e);
-        }),
-        vscode.commands.registerCommand('htr.deleteFile', async (e) => {
-            // TODO implement deleteFile command
-        }),
-        vscode.commands.registerCommand('htr.deleteValue', async (e) => {
-            // TODO implement deleteValue command
-        }),
-        vscode.commands.registerCommand('htr.previewYaml', () => {
-            const editor = vscode.window.activeTextEditor;
-            if (editor) {
-                const document = editor.document;
-                const filePath = document.fileName;
-                const fileDir = path.dirname(filePath);
-                const valuesFilePath = path.join(fileDir, 'values.yaml');
+    var addEnvironmentCommand = vscode.commands.registerCommand(
+        'htr.addEnvironment', 
+        async () => {
+            await providerService.addEnvironment();
+        }
+    );
 
-                fs.readFile(valuesFilePath, 'utf8', (err, data) => {
-                    if (err) {
-                        vscode.window.showErrorMessage(`Could not read values file: ${err.message}`);
-                        return;
-                    }
+    var deleteEnvironmentCommand = vscode.commands.registerCommand(
+        'htr.deleteEnvironment', 
+        async (e:vscode.TreeItem) => {
+            await treeViewService.deleteEnvironment(e);
+        }
+    );
 
-                    const values = yaml.load(data);
-                    const template = yaml.load(document.getText());
-                    const mergedYaml = mergeTemplateWithValues(template, values);
+    var addFileCommand = vscode.commands.registerCommand(
+        'htr.addFile',
+        async () => {
+            await providerService.addFile();
+        }
+    );
 
-                    vscode.workspace.openTextDocument({ content: yaml.dump(mergedYaml), language: 'yaml' }).then(doc => {
-                        vscode.window.showTextDocument(doc, { preview: false });
-                    });
-                });
-            }
-        }),
+    var deleteFileCommand = vscode.commands.registerCommand(
+        'htr.deleteFile', 
+        async (e:vscode.TreeItem) => {
+            await treeViewService.deleteFile(e);
+        }
+    );
+
+    var addValueCommand = vscode.commands.registerCommand(
+        'htr.addValue',
+        async () => {
+            await providerService.addValue();
+        }
+    );
+
+    var editValueCommand = vscode.commands.registerCommand(
+        'htr.editValue',
+        async (e) => {
+            await providerService.editValue(e);
+        }
+    );
+
+    var deleteValueCommand = vscode.commands.registerCommand(
+        'htr.deleteValue', 
+        async (e:vscode.TreeItem) => {
+            await treeViewService.deleteValue(e);
+        }
+    );
+
+    context.subscriptions.push(
+        treeViewService.getEnvironmentsTreeView(),
+        treeViewService.getFilesTreeView(),
+        treeViewService.getValuesTreeView(),
+
+        addEnvironmentCommand,
+        deleteEnvironmentCommand,
+        addFileCommand,
+        deleteFileCommand,
+        addValueCommand,
+        editValueCommand,
+        deleteValueCommand
       );
 
-      environmentsTreeView.onDidChangeSelection((event) => {
-        const selectedItem = event.selection[0];
-        if (selectedItem) {
-            General.selectedEnvironment = selectedItem.label?.toString() || '';
-            //vscode.window.showInformationMessage(`Item clicked: ${General.selectedEnvironment}`);
-            console.log("changed selection " + General.selectedEnvironment);
-            filesProvider.refresh();
-            valuesProvider.refresh();
+      const togglePreviewCommand = vscode.commands.registerCommand('htr.togglePreview', () => {
+        if (previewPanel) {
+            previewPanel.dispose();
+            previewPanel = undefined;
+        } else {
+            if (activeEditor) {
+                triggerUpdate(activeEditor.document);
+            }
         }
-    });      
+    });
+
+    context.subscriptions.push(togglePreviewCommand);
+
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+        activeEditor = editor;
+        if (editor && previewPanel) {
+            triggerUpdate(editor.document);
+        }
+    }, null, context.subscriptions);
+
+    vscode.workspace.onDidChangeTextDocument(event => {
+        if (activeEditor && event.document === activeEditor.document && previewPanel) {
+            triggerUpdate(event.document);
+        }
+    }, null, context.subscriptions);
+
+    function triggerUpdate(document: vscode.TextDocument) {
+        const uppercaseText = document.getText().toUpperCase();
+        updateUppercasePreview(uppercaseText);
+    }
+
+    async function updateUppercasePreview(text: string) {
+        if (!previewPanel) {
+            previewPanel = vscode.window.createWebviewPanel(
+                'templatePreview',
+                'Template Preview',
+                vscode.ViewColumn.Two,
+                {
+                    enableScripts: true,
+                    retainContextWhenHidden: true
+                }
+            );
+
+            previewPanel.onDidDispose(() => {
+                previewPanel = undefined;
+            }, null, context.subscriptions);
+        }
+
+        const config = vscode.workspace.getConfiguration();
+        const environments = config.get<Record<string, Environment>>('htr.environments') || {};
+
+        const se = General.selectedEnvironment;
+
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) {
+            vscode.window.showInformationMessage('No active editor found.');
+            return;
+        }
+    
+        const fileUri = activeEditor.document.uri;
+        const absolutePath = fileUri.fsPath;
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(fileUri);
+    
+        if (!workspaceFolder) {
+            vscode.window.showInformationMessage('No workspace folder found.');
+            return;
+        }
+    
+        const workspacePath = workspaceFolder.uri.fsPath;
+        const relativePath = vscode.workspace.asRelativePath(fileUri, false);
+        let workspaceDirectory = workspacePath;
+        let relativeFilePath = relativePath;
+    
+        const files = environments[se].files.join(" -f ");
+        let commandFiles = '';
+        if (files !== '') {
+            commandFiles = '-f ' + files;
+        }
+
+        let valuesCommand = '';
+        type keys = string;
+        var valuesObject:Record<keys, string | object> = environments[se].values as Record<keys, string | object>;
+
+        for (var key in valuesObject) {
+            valuesCommand += ' --set ' + key + "=" + valuesObject[key];
+        }
+
+        var command = 'helm template -s ' + relativeFilePath + ' . ' + commandFiles + valuesCommand;
+        console.log(command);
+        
+        const cp = require('child_process');
+        cp.exec(command,{cwd:workspaceDirectory}, (err: string, stdout: string, stderr: string) => {
+            // console.log('stdout: ' + stdout);
+            // console.log('stderr: ' + stderr);
+            if (err) {
+                console.log('error: ' + err);
+                return;
+            }
+
+            if (previewPanel) {
+                previewPanel.webview.html = getWebviewContent(stdout);
+            }
+            
+        });
+        
+
+        
+    }
+
+    function getWebviewContent(text: string): string {
+        return `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Template Preview</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 10px;
+                }
+                pre {
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                }
+            </style>
+        </head>
+        <body>
+            <pre>${text}</pre>
+        </body>
+        </html>`;
+    }
 }
 
 export function deactivate() {}
-
-async function deleteEnvironment(e:vscode.TreeItem) {
-    const config = vscode.workspace.getConfiguration();
-    var environments = config.get<Record<string, Object>>('htr.environments') || {};
-    type keys = string;
-    var newEnvironments : Record<keys, string | object> = {};
-    for (var environment in environments) {
-        if (environment !== e.label) {
-            newEnvironments[environment] = environments[environment];
-        }
-    }
-    config.update('htr.environments', newEnvironments);
-    // TODO select first available environment in view
-    vscode.window.showInformationMessage(`Environment ${e.label} removed`);
-}
-
-async function addEnvironment() {
-    const name = await vscode.window.showInputBox({ prompt: 'Enter environment name' });
-    if (!name) {
-        return;
-    }
-
-    const config = vscode.workspace.getConfiguration();
-    const environments = config.get<Record<string, Object>>('htr.environments') || {};
-    var configObject = (new ConfigObject(name));
-    environments[configObject.getName()] = configObject.getWritableObject();
-
-    await config.update('htr.environments', environments, vscode.ConfigurationTarget.Workspace);
-    vscode.window.showInformationMessage(`Environment ${name} created`);
-}
-
-function mergeTemplateWithValues(template: any, values: any): any {
-    if (typeof template === 'string') {
-        return replacePlaceholders(template, values);
-    } else if (typeof template === 'object') {
-        for (let key in template) {
-            template[key] = mergeTemplateWithValues(template[key], values);
-        }
-    }
-    return template;
-}
-
-function replacePlaceholders(str: string, values: any): string {
-    return str.replace(/\{\{(.+?)\}\}/g, (_, key) => {
-        const value = key.split('.').reduce((acc: { [x: string]: any; }, part: string | number) => acc && acc[part], values);
-        return value !== undefined ? value : `{{${key}}}`;
-    });
-}

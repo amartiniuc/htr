@@ -1,3 +1,5 @@
+import { Environment } from "../types";
+
 export default class ConfigObject {
 
     public name:string = '';
@@ -16,6 +18,6 @@ export default class ConfigObject {
         return {
             files: this.files,
             values: this.values
-        };
+        } as Environment;
     }
 }

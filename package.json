@@ -25,8 +25,8 @@
     },
     "commands": [
       {
-        "command": "htr.previewYaml",
-        "title": "Preview render HELM template"
+        "command": "htr.togglePreview",
+        "title": "Toggle HELM renderer Live Preview"
       },
       {
         "command": "htr.addEnvironment",
@@ -39,9 +39,24 @@
         "icon": "$(notebook-delete-cell)"
       },
       {
+        "command": "htr.addFile",
+        "title": "Add file",
+        "icon": "$(plus)"
+      },
+      {
         "command": "htr.deleteFile",
         "title": "Delete file",
         "icon": "$(notebook-delete-cell)"
+      },
+      {
+        "command": "htr.addValue",
+        "title": "Add value",
+        "icon": "$(plus)"
+      },
+      {
+        "command": "htr.editValue",
+        "title": "Edit value",
+        "icon": "$(extensions-configure-recommended)"
       },
       {
         "command": "htr.deleteValue",
@@ -90,6 +105,16 @@
           "command": "htr.addEnvironment",
           "when": "view == environments",
           "group": "navigation"
+        },
+        {
+          "command": "htr.addFile",
+          "when": "view == files",
+          "group": "navigation"
+        },
+        {
+          "command": "htr.addValue",
+          "when": "view == values",
+          "group": "navigation"
         }
       ],
       "view/item/context": [      
@@ -101,12 +126,17 @@
         {
           "command": "htr.deleteFile",
           "when": "view == files",
-          "group": "inline"
+          "group": "inline@2"
+        },
+        {
+          "command": "htr.editValue",
+          "when": "view == values",
+          "group": "inline@1"
         },
         {
           "command": "htr.deleteValue",
           "when": "view == values",
-          "group": "inline"
+          "group": "inline@2"
         }
       ]
     }

@@ -39,6 +39,18 @@ export default class EnvironmentsProvider implements vscode.TreeDataProvider<Tre
       }
       return [];
     }
+
+    getRoot() {
+      return this.data[0];
+    }
+
+    getLast() {
+      return this.data[this.data.length - 1];
+    }
+
+    getParent():TreeItem {
+      return this.data[0];
+    }
   }
   
   class TreeItem extends vscode.TreeItem {
