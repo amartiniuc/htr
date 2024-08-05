@@ -74,6 +74,8 @@ export default class ProviderService {
 
         await config.update('htr.environments', newEnvironments, vscode.ConfigurationTarget.Workspace);
         vscode.window.showInformationMessage(`Environment ${name} created`);
+
+        this.environmentsProvider._onDidChangeTreeData.fire(undefined);
     }
 
     public async addFile() {
@@ -110,6 +112,7 @@ export default class ProviderService {
             }
         };
         await config.update('htr.environments', newEnvironments, vscode.ConfigurationTarget.Workspace);
+        this.environmentsProvider._onDidChangeTreeData.fire(undefined);
     }
 
     public async addValue() {
@@ -142,6 +145,7 @@ export default class ProviderService {
             }
         };
         await config.update('htr.environments', newEnvironments, vscode.ConfigurationTarget.Workspace);
+        this.environmentsProvider._onDidChangeTreeData.fire(undefined);
     }
 
     public async editValue(e:vscode.TreeItem) {
@@ -167,11 +171,6 @@ export default class ProviderService {
 
         const se = General.selectedEnvironment;
 
-        if (environments[se].values.hasOwnProperty(key)) {
-            vscode.window.showErrorMessage('Key already present. You might want to edit it.');
-            return;
-        }
-
         type keys = string;
         var newValues: Record<keys, string | object> = {};
         for (const i in environments[se].values) {
@@ -189,5 +188,6 @@ export default class ProviderService {
             }
         };
         await config.update('htr.environments', newEnvironments, vscode.ConfigurationTarget.Workspace);
+        this.environmentsProvider._onDidChangeTreeData.fire(undefined);
     }
 }

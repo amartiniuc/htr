@@ -46,6 +46,7 @@ export default class TreeViewService {
                 console.log("changed selection " + General.selectedEnvironment);
                 this.providerService.getFilesProvider().refresh();
                 this.providerService.getValuesProvider().refresh();
+                this.providerService.getEnvironmentsProvider()._onDidChangeTreeData.fire(undefined);
             }
         }); 
     }
@@ -82,6 +83,7 @@ export default class TreeViewService {
 
         const root = this.providerService.getEnvironmentsProvider().getRoot();
         this.environmentsTreeView.reveal(root, {focus: true, select:true, expand: true});
+        this.providerService.getEnvironmentsProvider()._onDidChangeTreeData.fire(undefined);
     }
 
     public async deleteFile(e:TreeItem) {
@@ -115,6 +117,7 @@ export default class TreeViewService {
 
         const root = this.providerService.getEnvironmentsProvider().getRoot();
         this.environmentsTreeView.reveal(root, {focus: true, select:true, expand: true});
+        this.providerService.getEnvironmentsProvider()._onDidChangeTreeData.fire(undefined);
     }
 
     public async deleteValue(e:TreeItem) {
@@ -151,5 +154,6 @@ export default class TreeViewService {
 
         const root = this.providerService.getEnvironmentsProvider().getRoot();
         this.environmentsTreeView.reveal(root, {focus: true, select:true, expand: true});
+        this.providerService.getEnvironmentsProvider()._onDidChangeTreeData.fire(undefined);
     }
 }
