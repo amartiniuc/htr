@@ -39,16 +39,20 @@ export default class TreeViewService {
             }
         );
 
-        this.environmentsTreeView.onDidChangeSelection((event) => {
-            const selectedItem = event.selection[0];
-            if (selectedItem) {
-                General.selectedEnvironment = selectedItem.label?.toString() || '';
-                console.log("changed selection " + General.selectedEnvironment);
-                this.providerService.getFilesProvider().refresh();
-                this.providerService.getValuesProvider().refresh();
-                this.providerService.getEnvironmentsProvider()._onDidChangeTreeData.fire(undefined);
-            }
-        }); 
+        // this.environmentsTreeView.onDidChangeSelection((event) => {
+        //     const selectedItem = event.selection[0];
+        //     if (selectedItem) {
+        //         General.selectedEnvironment = selectedItem.label?.toString() || '';
+        //         console.log("changed selection " + General.selectedEnvironment);
+        //         this.providerService.getFilesProvider().refresh();
+        //         this.providerService.getValuesProvider().refresh();
+        //         this.providerService.getEnvironmentsProvider()._onDidChangeTreeData.fire(undefined);
+        //         const activeEditor = window.activeTextEditor;
+        //         if (activeEditor) {
+        //             triggerUpdate(activeEditor.document);
+        //         }
+        //     }
+        // }); 
     }
 
     public getEnvironmentsTreeView():TreeView<TreeItem> {

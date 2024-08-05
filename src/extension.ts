@@ -189,10 +189,11 @@ export function activate(context: vscode.ExtensionContext) {
         
         const cp = require('child_process');
         cp.exec(command,{cwd:workspaceDirectory}, (err: string, stdout: string, stderr: string) => {
-            // console.log('stdout: ' + stdout);
-            // console.log('stderr: ' + stderr);
             if (err) {
                 console.log('error: ' + err);
+                if (previewPanel) {
+                    previewPanel.webview.html = getWebviewContent(err);
+                }
                 return;
             }
 
@@ -201,9 +202,6 @@ export function activate(context: vscode.ExtensionContext) {
             }
             
         });
-        
-
-        
     }
 
     function getWebviewContent(text: string): string {
@@ -229,6 +227,21 @@ export function activate(context: vscode.ExtensionContext) {
         </body>
         </html>`;
     }
+
+    treeViewService.getEnvironmentsTreeView().onDidChangeSelection((event) => {
+        const selectedItem = event.selection[0];
+        if (selectedItem) {
+            General.selectedEnvironment = selectedItem.label?.toString() || '';
+            console.log("changed selection " + General.selectedEnvironment);
+            providerService.getFilesProvider().refresh();
+            providerService.getValuesProvider().refresh();
+            providerService.getEnvironmentsProvider()._onDidChangeTreeData.fire(undefined);
+            const activeEditor = vscode.window.visibleTextEditors[0] || vscode.window.activeTextEditor;
+            if (activeEditor) {
+                triggerUpdate(activeEditor.document);
+            }
+        }
+    }); 
 }
 
 export function deactivate() {}
